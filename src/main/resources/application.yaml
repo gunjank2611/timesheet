@@ -1,0 +1,11 @@
+spring:
+  http:
+    multipart:
+      enabled: true
+      max-file-size: 30MB
+      max-request-size: 30MB
+azure:
+  storage:
+    accountName: exceluploads
+    container-name: excels
+    connection-string: BlobEndpoint=https://exceluploads.blob.core.windows.net/excels?sp=racwdli&st=2022-08-07T16:16:06Z&se=2023-08-08T00:16:06Z&sv=2021-06-08&sr=c&sig=BxWUJG4NdWh3yKQqVXRTVCYsTZTeBdJhImCQoH%2BSz%2FA%3D

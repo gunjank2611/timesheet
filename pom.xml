@@ -55,6 +55,11 @@
       <version>${springfox.swagger.version}</version> 
     </dependency>  
     <dependency> 
+      <groupId>net.sf.supercsv</groupId>  
+      <artifactId>super-csv</artifactId>  
+      <version>2.3.0</version> 
+    </dependency>  
+    <dependency> 
       <groupId>io.springfox</groupId>  
       <artifactId>springfox-swagger-ui</artifactId>  
       <version>${springfox.swagger.ui.version}</version> 
@@ -76,6 +81,12 @@
     </dependencies> 
   </dependencyManagement>  
   <build> 
+    <resources> 
+      <resource> 
+        <directory>src/main/resources</directory>  
+        <filtering>false</filtering> 
+      </resource> 
+    </resources>  
     <plugins> 
       <plugin> 
         <groupId>org.springframework.boot</groupId>  
@@ -94,10 +105,10 @@
         <version>1.9.1</version>  
         <configuration> 
           <schemaVersion>V2</schemaVersion>  
-          <resourceGroup>email-notification-1639995211576-rg</resourceGroup>  
-          <appName>timesheet-mgmt-mckinsey-2022</appName>  
+          <resourceGroup>mckinsey-timesheet</resourceGroup>  
+          <appName>timesheet-mgmt-mckinsey</appName>  
           <pricingTier>B1</pricingTier>  
-          <region>centralus</region>  
+          <region>centralindia</region>  
           <appSettings> 
             <property> 
               <name>JAVA_OPTS</name>  

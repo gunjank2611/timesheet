@@ -5,7 +5,6 @@ import com.example.config.AzureFileUploadConfig;
 import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
-import java.time.Instant;
 
 @Service
 public class UploadOutputFileService {
@@ -22,15 +21,13 @@ public class UploadOutputFileService {
         BlobClient blobClient = null;
         blobClient = azureFileUploadConfig.blobContainerClient().getBlobClient(dirName + "/" + fileName);
 
-        if (blobClient.exists())
-        {
+        if (blobClient.exists()) {
             blobClient.delete();
             blobClient = azureFileUploadConfig.blobContainerClient().getBlobClient(dirName + "/" + fileName);
         }
-          //  blobClient = azureFileUploadConfig.blobContainerClient().getBlobClient(dirName + "/"+ Instant.now().toEpochMilli() + fileName );
-//upload file
-            blobClient.upload(azureFileInputStream, fileSize);
-            return blobClient.getBlobUrl();
+
+        blobClient.upload(azureFileInputStream, fileSize);
+        return blobClient.getBlobUrl();
 
     }
 

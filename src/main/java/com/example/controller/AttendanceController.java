@@ -1,6 +1,10 @@
 package com.example.controller;
 
+import com.example.dto.ConfigDTO;
 import com.example.dto.MapUtility;
+import com.example.enums.ResponseCodes;
+import com.example.exception.InvalidFileFormatException;
+import com.example.exception.OutputUploadException;
 import com.example.reader.ReadNagarroCSV;
 import com.example.reader.ReadWANDexcel;
 import com.example.writer.WriteToExcel;
@@ -8,6 +12,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import io.swagger.annotations.ApiOperation;
 import org.apache.commons.io.IOUtils;
+import org.apache.poi.ss.formula.functions.T;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
@@ -16,11 +21,15 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
+import org.supercsv.io.CsvBeanReader;
+import org.supercsv.io.ICsvBeanReader;
+import org.supercsv.prefs.CsvPreference;
 
 import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
+import java.util.*;
 
 @RestController
 @RequestMapping("mcKinsey")
@@ -39,34 +48,57 @@ public class AttendanceController {
     public ResponseEntity<String> uploadFiles(@RequestParam("files") List<MultipartFile> files) {
 
         MapUtility maps = new MapUtility();
+
             try{
             files.stream().forEach(file -> {
 
                         try {
-                            if (file.getOriginalFilename().contains("SAP")) {
+                            if (file.getOriginalFilename().endsWith("xlsx") && !file.getOriginalFilename().contains("WAND")) {
+                                String str= file.getOriginalFilename();
+
                                 FileInputStream fis = (FileInputStream) file.getInputStream();
                                 maps.setNagarroMap(readNagarroCSV.getNagarroData(fis));
+                                maps.setProjectName(str.substring(0,str.indexOf(".")));
                             }
-                            if (file.getOriginalFilename().contains(".txt")) {
+                            if (file.getOriginalFilename().contains(".csv")) {
                                 maps.setProWandEmpMap(loadDataIntoMap(file.getInputStream()));
+                                maps.setProjectCode(file.getOriginalFilename().substring(0,file.getOriginalFilename().indexOf(".")));
 
                             }
                             if (file.getOriginalFilename().contains("WAND")) {
                                 File wandfile = new File("WAND.xlsx");
                                 FileOutputStream outputStream = new FileOutputStream(wandfile);
                                 IOUtils.copy(file.getInputStream(), outputStream);
-
-                                maps.setBloburl(writeToExcel.writeEmployeeData(maps.getNagarroMap(), readWANDexcel.getMcKinseyTimesheetData(wandfile), maps.getProWandEmpMap().inverse()));
-
+                                maps.setProWANDTimesheetData(readWANDexcel.getMcKinseyTimesheetData(wandfile));
+                            }
+                            else
+                            {
+                                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Incorrect file extension(s) found.",
+                                        new InvalidFileFormatException());
                             }
 
-
-                        } catch (Exception e) {
-                            e.printStackTrace();
+                        }
+                        catch (ResponseStatusException responseStatusException) {
+                            throw new ResponseStatusException(responseStatusException.getStatus(), responseStatusException.getReason());
+                        }
+                        catch (Exception e) {
+                            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Something wrong with input streams");
                         }
                     }
             );
-/*
+
+                    if(maps.getProjectName()!=null && maps.getProWandEmpMap()!=null && maps.getNagarroMap()!=null && maps.getProWANDTimesheetData()!=null)
+                        maps.setBloburl(writeToExcel.writeEmployeeData(maps.getNagarroMap(), maps.getProWANDTimesheetData(), maps.getProWandEmpMap(),maps.getProjectName(),maps.getProjectCode()));
+
+            }  catch (ResponseStatusException resEx) {
+                return ResponseEntity.status(resEx.getStatus()).body(resEx.getReason());
+            }
+            catch (Exception e) {
+                System.out.println("files are read; output streams have run into a problem!!");
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+            }
+
+        /*    backup code to return the output file as the response type instead of uploading the same to azure BLOB
             try
             {
                 String excelPath = Paths.get("test.xlsx")
@@ -89,37 +121,55 @@ public class AttendanceController {
                     .contentLength(outputfile.length()) //
                     .body(resource);*/
 
-        } catch (Exception e) {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-        }
+
 
 
         return new ResponseEntity<String>(maps.getBloburl(), HttpStatus.OK);
     }
-    private static  BiMap<String, String> loadDataIntoMap(InputStream is)  throws Exception{
-
-        try {
-            BiMap<String, String> namesEmpIdMap = HashBiMap.create();
-            String line;
-            //BufferedReader reader = new BufferedReader(new FileReader(filePath));
-            BufferedReader reader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
-            while ((line = reader.readLine()) != null) {
-                String[] parts = line.split(":", 2);
-                if (parts.length >= 2) {
-                    String key = parts[1];
-                    String value = parts[0];
-                    namesEmpIdMap.put(key, value);
-                }
+    private static boolean validateCSVHeaders(String[] headerValues) {
+        String headerLine = "emailAddress|proWandName|projectName";
+        String[] columArr = split(headerLine, "\\|");
+        for (int i = 0; i < columArr.length; i++) {
+            if (!headerValues[i].equalsIgnoreCase(columArr[i].trim())) {
+                return true;
             }
-            return namesEmpIdMap;
         }
-        catch (FileNotFoundException e) {
-            System.out.println("config file is missing");
+        System.out.println("csv column names are validated successfully.");
+        return true;
+    }
+    private static String[] split(String str, String strSeparator) {
+        if (str == null || strSeparator == null) {
             return null;
         }
-        catch (Exception e) {
-            System.out.println("Exception occurred while reading config file data"+e.getMessage());
-            return null;
+        StringTokenizer tokenizer = new StringTokenizer(str, strSeparator);
+        String[] strArrValues = new String[tokenizer.countTokens()];
+        int count = 0;
+        while (tokenizer.hasMoreTokens()) {
+            strArrValues[count++] = tokenizer.nextToken().trim();
         }
+        return strArrValues;
+    }
+    private static  Map<String, String> loadDataIntoMap(InputStream is)  throws Exception{
+        Map<String, String> namesEmpIdMap = new HashMap<>();
+
+            try (Reader fr = new InputStreamReader(is);
+                 ICsvBeanReader beanReader = new CsvBeanReader(fr, CsvPreference.STANDARD_PREFERENCE)) {
+
+                String[] headerLine = new String[]{"emailAddress", "proWandName", "projectName"};
+                final String[] header = beanReader.getHeader(true);
+                if (validateCSVHeaders(header)) {
+                    ConfigDTO configDTO;
+                    while ((configDTO = beanReader.read(ConfigDTO.class, headerLine)) != null) {
+                       String str = configDTO.getProWandName().trim().concat(":").concat(configDTO.getProjectName().trim());
+                        namesEmpIdMap.put(configDTO.getEmailAddress(),str);
+                    }
+                }
+
+            }
+            catch (FileNotFoundException e) {
+                System.out.println("Please rectify the csv file!!");
+                return null;
+            }
+           return namesEmpIdMap;
     }
 }

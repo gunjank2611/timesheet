@@ -17,8 +17,36 @@ public class MapUtility {
     }
 
     private Map<String, List<String>> nagarroMap = null;
-    private BiMap<String, String> proWandEmpMap = null;
+
+    public String getProjectName() {
+        return projectName;
+    }
+
+    public String getProjectCode() {
+        return projectCode;
+    }
+
+    public void setProjectCode(String projectCode) {
+        this.projectCode = projectCode;
+    }
+
+    public void setProjectName(String projectName) {
+        this.projectName = projectName;
+    }
+
+    private Map<String, String> proWandEmpMap = null;
     private String bloburl = null;
+    private Map<String, List<String>> proWANDTimesheetData = null;
+    private String projectName = null;
+    private String projectCode = null;
+
+    public Map<String, List<String>> getProWANDTimesheetData() {
+        return proWANDTimesheetData;
+    }
+
+    public void setProWANDTimesheetData(Map<String, List<String>> proWANDTimesheetData) {
+        this.proWANDTimesheetData = proWANDTimesheetData;
+    }
 
     public Map<String, List<String>> getNagarroMap() {
         return nagarroMap;
@@ -28,11 +56,11 @@ public class MapUtility {
         this.nagarroMap = nagarroMap;
     }
 
-    public BiMap<String, String> getProWandEmpMap() {
+    public Map<String, String> getProWandEmpMap() {
         return proWandEmpMap;
     }
 
-    public void setProWandEmpMap(BiMap<String, String> proWandEmpMap) {
+    public void setProWandEmpMap(Map<String, String> proWandEmpMap) {
         this.proWandEmpMap = proWandEmpMap;
     }
 

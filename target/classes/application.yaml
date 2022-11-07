@@ -6,6 +6,6 @@ spring:
       max-request-size: 30MB
 azure:
   storage:
-    accountName: exceluploads
+    accountName: uploadedexcels
     container-name: excels
-    connection-string: BlobEndpoint=https://exceluploads.blob.core.windows.net/excels?sp=racwdli&st=2022-08-07T16:16:06Z&se=2023-08-08T00:16:06Z&sv=2021-06-08&sr=c&sig=BxWUJG4NdWh3yKQqVXRTVCYsTZTeBdJhImCQoH%2BSz%2FA%3D
+    connection-string: BlobEndpoint=https://uploadedexcels.blob.core.windows.net/excels?sp=racwdl&st=2022-10-10T11:31:11Z&se=2023-04-29T19:31:11Z&spr=https&sv=2021-06-08&sr=c&sig=RNS3muH9OvrQKltofyzk%2BbGqe0eYFFqcDwavkl3A1Hk%3D
